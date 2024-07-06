@@ -445,6 +445,7 @@ function loadSavedCodes() {
                 });
                 saveBinLoc('@Xiripyu/code-editor', 'text', 0, 0, serializedData);
                 loadSavedCodes();
+                updateCurrentFileName();
             }
         };
         button.onmousedown = (e) => {
@@ -452,6 +453,8 @@ function loadSavedCodes() {
                 savedCodes.splice(index, 1);
                 if (currentCodeIndex === index) {
                     currentCodeIndex = -1;
+                    currentFileName.textContent = '';
+                    currentFileName.style.display = 'none';
                 } else if (currentCodeIndex > index) {
                     currentCodeIndex--;
                 }
@@ -461,6 +464,7 @@ function loadSavedCodes() {
                 });
                 saveBinLoc('@Xiripyu/code-editor', 'text', 0, 0, serializedData);
                 loadSavedCodes();
+                updateCurrentFileName();
             }
         };
         if (index === currentCodeIndex) {
@@ -519,9 +523,16 @@ function updateCurrentFileName() {
     const savedCodes = loadSavedCodes();
     if (currentCodeIndex !== -1 && savedCodes[currentCodeIndex]) {
         const currentCode = savedCodes[currentCodeIndex];
-        currentFileName.textContent = currentCode.name || '';
+        if (currentCode.name) {
+            currentFileName.textContent = currentCode.name;
+            currentFileName.style.display = 'block';
+        } else {
+            currentFileName.textContent = '';
+            currentFileName.style.display = 'none';
+        }
     } else {
         currentFileName.textContent = '';
+        currentFileName.style.display = 'none';
     }
 }
 
