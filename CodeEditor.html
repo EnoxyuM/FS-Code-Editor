@@ -1,71 +1,82 @@
-<html><head><base href="https://code.editor/" /><title>FS Code Editor</title><style>
-body,html{margin:0;padding:0;height:100vh;overflow:hidden;font-family:sans-serif;background:#1e1e1e;color:#e0e0e0}
-#editor,#scene,#console{width:100%;border:none;position:absolute;top:0;left:0}
-#editor,#scene{height:100%;}
-#editor {z-index: 10;}
-#editor .CodeMirror{height:100%;background-color: transparent;}
-.cm-s-monokai.CodeMirror { background: transparent; color: #f8f8f2; }
-.cm-s-monokai .CodeMirror-gutters { background: rgba(30, 30, 30, 0.5); border-right: 0px; }
-.cm-s-monokai .CodeMirror-linenumber { color: #5c5c5c; }
-#console {height:30%;bottom:0;top:auto;background-color:rgba(0,0,0,0.8);color:#fff;overflow-y:auto;display:none;z-index:20;padding:10px;box-sizing:border-box;font-family:monospace;}
-.error {color: #ff6b6b;}
-.log {color: #4ecdc4;}
-#scene { pointer-events: auto; }
-#editor { pointer-events: none; }
-.CodeMirror-matchingbracket { background-color: #ff0000 !important; color: #000000 !important; }
-.cm-matchhighlight {background-color: #774a77;}
-.CodeMirror-selection-highlight-scrollbar {background-color: #4a4a4a;}
-#menu {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(30, 30, 30, 0.9);
-    border: 1px solid #444;
-    padding: 20px;
-    max-height: 80vh;
-    overflow-y: auto;
-    display: none;
-    z-index: 1000;
-}
-#menu button {
-    display: block;
-    width: 100%;
-    padding: 10px;
-    margin: 5px 0;
-    background: #333;
-    color: #fff;
-    border: none;
-    cursor: pointer;
-    text-align: left;
-}
-#menu button:hover {
-    background: #444;
-}
-#menu button.selected {
-    background: #555;
-}
-#menu button .name {
-    color: #ff9800;
-    font-weight: bold;
-    display: block;
-}
-#saveBtn {
-    background: #4CAF50 !important;
-}
-#saveBtn:hover {
-    background: #45a049 !important;
-}
-#currentFileName {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    background: rgba(0, 0, 0, 0.5);
-    padding: 5px 10px;
-    border-radius: 5px;
-    z-index: 1000;
-}
-</style></head><body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FS Code Editor</title>
+    <style>
+        body,html{margin:0;padding:0;height:100vh;overflow:hidden;font-family:sans-serif;background:#1e1e1e;color:#e0e0e0}
+        #editor,#scene,#console{width:100%;border:none;position:absolute;top:0;left:0}
+        #editor,#scene{height:100%;}
+        #editor {z-index: 10;}
+        #editor .CodeMirror{height:100%;background-color: transparent;}
+        .cm-s-monokai.CodeMirror { background: transparent; color: #f8f8f2; }
+        .cm-s-monokai .CodeMirror-gutters { background: rgba(30, 30, 30, 0.5); border-right: 0px; }
+        .cm-s-monokai .CodeMirror-linenumber { color: #5c5c5c; }
+        #console {height:30%;bottom:0;top:auto;background-color:rgba(0,0,0,0.8);color:#fff;overflow-y:auto;display:none;z-index:20;padding:10px;box-sizing:border-box;font-family:monospace;}
+        .error {color: #ff6b6b;}
+        .log {color: #4ecdc4;}
+        #scene { pointer-events: auto; }
+        #editor { pointer-events: none; }
+        .CodeMirror-matchingbracket { background-color: #ff0000 !important; color: #000000 !important; }
+        .cm-matchhighlight {background-color: #774a77;}
+        .CodeMirror-selection-highlight-scrollbar {background-color: #4a4a4a;}
+        #menu {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(30, 30, 30, 0.9);
+            border: 1px solid #444;
+            padding: 20px;
+            max-height: 80vh;
+            overflow-y: auto;
+            display: none;
+            z-index: 1000;
+        }
+        #menu button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            background: #333;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            text-align: left;
+        }
+        #menu button:hover {
+            background: #444;
+        }
+        #menu button.selected {
+            background: #555;
+        }
+        #menu button .name {
+            color: #ff9800;
+            font-weight: bold;
+            display: block;
+        }
+        #saveBtn {
+            background: #4CAF50 !important;
+        }
+        #saveBtn:hover {
+            background: #45a049 !important;
+        }
+        #currentFileName {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+        #fileInfo {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
 <div id="editor"></div>
 <iframe id="scene"></iframe>
 <div id="console"></div>
@@ -318,115 +329,128 @@ function toggleMenu() {
     }
 }
 
-function saveBinLoc(key, type, start, indexes, ...data) {
-    if (type !== 'int' && type !== 'float' && type !== 'text') {
-        throw new Error('Неверный тип. Допустимые типы: int, float, text');
-    }
+let db;
+const DB_NAME = 'CodeEditorDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'codes';
 
-    let buffer;
-    if (type === 'text') {
-        let encoder = new TextEncoder();
-        let textData = data[0];
-        buffer = encoder.encode(textData).buffer;
-    } else {
-        if (start < 0 || indexes <= 0 || start + indexes > data.length) {
-            throw new Error('Неверные значения start или indexes');
-        }
-        buffer = new ArrayBuffer(indexes * 4);
-        let view = type === 'int' ? new Int32Array(buffer) : new Float32Array(buffer);
-        for (let i = 0; i < indexes; i++) {
-            view[i] = data[start + i];
-        }
-    }
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-    let base64String = btoa(String.fromCharCode.apply(null, new Uint8Array(buffer)));
-    localStorage.setItem(key, base64String);
+        request.onupgradeneeded = function(event) {
+            db = event.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+            }
+        };
+
+        request.onsuccess = function(event) {
+            db = event.target.result;
+            resolve(db);
+        };
+
+        request.onerror = function(event) {
+            reject('Error opening database');
+        };
+    });
 }
 
-function loadBinLoc(key, type, start, indexes) {
-    if (type !== 'int' && type !== 'float' && type !== 'text') {
-        throw new Error('Неверный тип. Допустимые типы: int, float, text');
-    }
+function saveCode(codeObj) {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.add(codeObj);
 
-    let storedData = localStorage.getItem(key);
+        request.onsuccess = function(event) {
+            resolve(event.target.result);
+        };
 
-    if (storedData) {
-        let binaryString = atob(storedData);
-        let buffer = new ArrayBuffer(binaryString.length);
-        let uint8View = new Uint8Array(buffer);
+        request.onerror = function(event) {
+            reject('Error saving code');
+        };
+    });
+}
 
-        for (let i = 0; i < binaryString.length; i++) {
-            uint8View[i] = binaryString.charCodeAt(i);
-        }
+function updateCode(codeObj) {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.put(codeObj);
 
-        if (type === 'text') {
-            let decoder = new TextDecoder();
-            let fullText = decoder.decode(uint8View);
-            
-            if (start === undefined) start = 0;
-            if (indexes === undefined) indexes = Math.ceil(fullText.length / 4);
-            
-            let startChar = start * 4;
-            let endChar = Math.min(startChar + indexes * 4, fullText.length);
-            
-            return fullText.slice(startChar, endChar);
-        } else {
-            let view = type === 'int' ? new Int32Array(buffer) : new Float32Array(buffer);
-            let totalIndexes = view.length;
-            
-            if (start === undefined) start = 0;
-            if (indexes === undefined) indexes = totalIndexes - start;
-            if (start < 0 || indexes <= 0 || start + indexes > totalIndexes) {
-                throw new Error('Неверные значения start или indexes');
-            }
+        request.onsuccess = function(event) {
+            resolve(event.target.result);
+        };
 
-            return Array.from(view.slice(start, start + indexes));
-        }
-    } else {
-        return null;
-    }
+        request.onerror = function(event) {
+            reject('Error updating code');
+        };
+    });
+}
+
+function deleteCode(id) {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.delete(id);
+
+        request.onsuccess = function(event) {
+            resolve();
+        };
+
+        request.onerror = function(event) {
+            reject('Error deleting code');
+        };
+    });
+}
+
+function getCodes() {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.getAll();
+
+        request.onsuccess = function(event) {
+            resolve(event.target.result);
+        };
+
+        request.onerror = function(event) {
+            reject('Error getting codes');
+        };
+    });
 }
 
 let currentCodeIndex = -1;
 
-function saveCurrentCode(overwrite = false) {
+async function saveCurrentCode(overwrite = false) {
     const currentCode = editor.getValue();
     const currentDate = new Date();
-    let savedCodes = loadSavedCodes();
+    let savedCodes = await getCodes();
     
     if (overwrite && currentCodeIndex !== -1) {
         savedCodes[currentCodeIndex].code = currentCode;
         savedCodes[currentCodeIndex].date = currentDate;
+        await updateCode(savedCodes[currentCodeIndex]);
     } else {
-        savedCodes.unshift({
+        const newCode = {
             date: currentDate,
             code: currentCode,
             name: ''
-        });
+        };
+        const id = await saveCode(newCode);
+        newCode.id = id;
+        savedCodes.unshift(newCode);
         currentCodeIndex = 0;
     }
 
-    const serializedData = JSON.stringify({
-        codes: savedCodes,
-        lastOpenedIndex: currentCodeIndex
-    });
-    
-    saveBinLoc('@Xiripyu/code-editor', 'text', 0, 0, serializedData);
     loadSavedCodes();
     updateCurrentFileName();
+    updateFileInfo();
 }
 
-function loadSavedCodes() {
-    const savedCodesData = loadBinLoc('@Xiripyu/code-editor', 'text');
-    let savedCodes = [];
-    
-    if (savedCodesData) {
-        const parsedData = JSON.parse(savedCodesData);
-        savedCodes = parsedData.codes;
-        currentCodeIndex = parsedData.lastOpenedIndex;
-    }
-
-    menu.innerHTML = '<button id="saveBtn">Save New Code</button>';
+async function loadSavedCodes() {
+    const savedCodes = await getCodes();
+    menu.innerHTML = '<div id="fileInfo"></div><button id="saveBtn">Save New Code</button>';
     savedCodes.forEach((savedCode, index) => {
         const button = document.createElement('button');
         if (savedCode.name) {
@@ -439,18 +463,14 @@ function loadSavedCodes() {
             const name = prompt('Enter a name for this code:', savedCode.name);
             if (name !== null) {
                 savedCode.name = name;
-                const serializedData = JSON.stringify({
-                    codes: savedCodes,
-                    lastOpenedIndex: currentCodeIndex
-                });
-                saveBinLoc('@Xiripyu/code-editor', 'text', 0, 0, serializedData);
+                updateCode(savedCode);
                 loadSavedCodes();
                 updateCurrentFileName();
             }
         };
         button.onmousedown = (e) => {
             if (e.button === 1) {
-                savedCodes.splice(index, 1);
+                deleteCode(savedCode.id);
                 if (currentCodeIndex === index) {
                     currentCodeIndex = -1;
                     currentFileName.textContent = '';
@@ -458,13 +478,9 @@ function loadSavedCodes() {
                 } else if (currentCodeIndex > index) {
                     currentCodeIndex--;
                 }
-                const serializedData = JSON.stringify({
-                    codes: savedCodes,
-                    lastOpenedIndex: currentCodeIndex
-                });
-                saveBinLoc('@Xiripyu/code-editor', 'text', 0, 0, serializedData);
                 loadSavedCodes();
                 updateCurrentFileName();
+                updateFileInfo();
             }
         };
         if (index === currentCodeIndex) {
@@ -474,8 +490,6 @@ function loadSavedCodes() {
     });
 
     document.getElementById('saveBtn').onclick = () => saveCurrentCode(false);
-
-    return savedCodes;
 }
 
 function formatDate(date) {
@@ -503,17 +517,12 @@ function formatDate(date) {
     }
 }
 
-function loadCode(index) {
-    const savedCodes = loadSavedCodes();
+async function loadCode(index) {
+    const savedCodes = await getCodes();
     if (savedCodes[index]) {
         editor.setValue(savedCodes[index].code);
         currentCodeIndex = index;
         updateScene();
-        const serializedData = JSON.stringify({
-            codes: savedCodes,
-            lastOpenedIndex: currentCodeIndex
-        });
-        saveBinLoc('@Xiripyu/code-editor', 'text', 0, 0, serializedData);
         loadSavedCodes();
         updateCurrentFileName();
     }
@@ -536,16 +545,26 @@ function updateCurrentFileName() {
     }
 }
 
-// Initialize
-const savedCodesData = loadBinLoc('@Xiripyu/code-editor', 'text');
-if (savedCodesData) {
-    const parsedData = JSON.parse(savedCodesData);
-    currentCodeIndex = parsedData.lastOpenedIndex;
-    if (currentCodeIndex !== -1 && parsedData.codes[currentCodeIndex]) {
-        editor.setValue(parsedData.codes[currentCodeIndex].code);
-        updateScene();
-    }
+function updateFileInfo() {
+    getCodes().then(savedCodes => {
+        const totalSize = savedCodes.reduce((acc, code) => acc + code.code.length, 0);
+        document.getElementById('fileInfo').textContent = `${totalSize} b, Files: ${savedCodes.length}`;
+    });
 }
-loadSavedCodes();
-updateCurrentFileName();
-</script></body></html>
+
+// Initialize
+openDB().then(() => {
+    getCodes().then(savedCodes => {
+        if (savedCodes.length > 0) {
+            currentCodeIndex = savedCodes.length - 1; // Load the last opened file
+            editor.setValue(savedCodes[currentCodeIndex].code);
+            updateScene();
+        }
+        loadSavedCodes();
+        updateCurrentFileName();
+        updateFileInfo();
+    });
+});
+</script>
+</body>
+</html>
