@@ -1,0 +1,462 @@
+<html><head><base href="https://visual.notes"><title>Visual Notes</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+<style>
+  body, html {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #313338;
+  }
+  .window {
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    transition: transform 0.3s ease;
+    min-width: 50px;
+    min-height: 50px;
+  }
+  .window:hover {
+    transform: scale(1.02);
+  }
+  .window-textarea {
+    width: 100%;
+    height: 100%;
+    border: none;
+    resize: none;
+    font-family: inherit;
+    background: transparent;
+    padding: 10px;
+    box-sizing: border-box;
+  }
+  #colorMenu {
+    position: fixed;
+    background: white;
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 5px;
+    display: none;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+  }
+  #colorPicker, #textColorPicker {
+    width: 100%;
+    height: 30px;
+    margin-bottom: 10px;
+  }
+  #fontSizeSlider {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  #setAsDefault, #resetDefault, #exportNotes, #importNotes {
+    width: 100%;
+    padding: 5px;
+    margin-bottom: 5px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  #resetDefault {
+    background-color: #e74c3c;
+  }
+  #exportNotes {
+    background-color: #2ecc71;
+  }
+  #importNotes {
+    background-color: #f39c12;
+  }
+  .handle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 20px 20px 0;
+    border-color: transparent #3498db transparent transparent;
+    cursor: move;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .window:hover .handle {
+    opacity: 1;
+  }
+</style>
+</head>
+<body>
+<div id="colorMenu">
+  <input type="color" id="colorPicker" title="Background Color">
+  <input type="color" id="textColorPicker" title="Text Color">
+  <input type="range" id="fontSizeSlider" min="8" max="72" value="16">
+  <button id="setAsDefault">Set as default</button>
+  <button id="resetDefault">Reset default</button>
+  <button id="exportNotes">Export Notes</button>
+  <button id="importNotes">Import Notes</button>
+</div>
+
+<script>
+let windows = [];
+let isDragging = false;
+let isResizing = false;
+let draggedWindow = null;
+let offset = { x: 0, y: 0 };
+let colorMenu;
+let activeWindow = null;
+let isColorMenuOpen = false;
+let preventNextNoteCreation = false;
+const SNAP_THRESHOLD = 10;
+const DB_NAME = 'XiripyuVisualNotesDB';
+const STORE_NAME = 'notes';
+let db;
+let defaultSettings = {
+  bgColor: 'rgba(255, 255, 255, 0.8)',
+  textColor: '#000000',
+  fontSize: 16,
+  width: 150,
+  height: 125
+};
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onerror = (event) => reject("IndexedDB error: " + event.target.error);
+    request.onsuccess = (event) => {
+      db = event.target.result;
+      resolve(db);
+    };
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      db.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
+    };
+  });
+}
+
+function saveToIndexedDB(data) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME], "readwrite");
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.put(data);
+    request.onerror = (event) => reject("IndexedDB save error: " + event.target.error);
+    request.onsuccess = (event) => resolve(event.target.result);
+  });
+}
+
+function loadFromIndexedDB() {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME], "readonly");
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.getAll();
+    request.onerror = (event) => reject("IndexedDB load error: " + event.target.error);
+    request.onsuccess = (event) => resolve(event.target.result);
+  });
+}
+
+async function init() {
+  await openDB();
+  colorMenu = document.getElementById('colorMenu');
+
+  await loadNotes();
+
+  window.addEventListener('resize', onWindowResize, false);
+  document.addEventListener('mousemove', onMouseMove, false);
+  document.addEventListener('mouseup', onMouseUp, false);
+  document.addEventListener('contextmenu', onContextMenu, false);
+  document.addEventListener('auxclick', onAuxClick, false);
+  document.addEventListener('mousedown', onMouseDown, false);
+
+  document.getElementById('colorPicker').addEventListener('change', updateBackgroundColor);
+  document.getElementById('textColorPicker').addEventListener('change', updateTextColor);
+  document.getElementById('fontSizeSlider').addEventListener('input', updateFontSize);
+  document.getElementById('setAsDefault').addEventListener('click', setAsDefault);
+  document.getElementById('resetDefault').addEventListener('click', resetDefault);
+  document.getElementById('exportNotes').addEventListener('click', exportNotes);
+  document.getElementById('importNotes').addEventListener('click', importNotes);
+}
+
+function createWindow(x, y, width, height, bgColor, textColor, fontSize, content) {
+  const windowElement = document.createElement('div');
+  windowElement.className = 'window';
+  windowElement.style.width = width + 'px';
+  windowElement.style.height = height + 'px';
+  windowElement.style.left = x + 'px';
+  windowElement.style.top = y + 'px';
+  windowElement.style.backgroundColor = bgColor;
+
+  const textarea = document.createElement('textarea');
+  textarea.className = 'window-textarea';
+  textarea.placeholder = 'Type your note here...';
+  textarea.value = content;
+  textarea.style.color = textColor;
+  textarea.style.fontSize = fontSize + 'px';
+  windowElement.appendChild(textarea);
+
+  const handle = document.createElement('div');
+  handle.className = 'handle';
+  windowElement.appendChild(handle);
+
+  document.body.appendChild(windowElement);
+  windows.push(windowElement);
+
+  handle.addEventListener('mousedown', (e) => {
+    if (e.button === 0) { // Left mouse button
+      isDragging = true;
+      draggedWindow = windowElement;
+      offset.x = e.clientX - windowElement.offsetLeft;
+      offset.y = e.clientY - windowElement.offsetTop;
+    } else if (e.button === 2) { // Right mouse button
+      isResizing = true;
+      draggedWindow = windowElement;
+      preventNextNoteCreation = true;
+    }
+    e.stopPropagation();
+    e.preventDefault();
+  });
+
+  textarea.addEventListener('input', saveNotes);
+
+  return windowElement;
+}
+
+function onMouseMove(event) {
+  if (isDragging && draggedWindow) {
+    let newX = event.clientX - offset.x;
+    let newY = event.clientY - offset.y;
+
+    // Snap to window edges
+    if (newX < SNAP_THRESHOLD) newX = 0;
+    if (newY < SNAP_THRESHOLD) newY = 0;
+    if (newX + draggedWindow.offsetWidth > window.innerWidth - SNAP_THRESHOLD) 
+      newX = window.innerWidth - draggedWindow.offsetWidth;
+    if (newY + draggedWindow.offsetHeight > window.innerHeight - SNAP_THRESHOLD) 
+      newY = window.innerHeight - draggedWindow.offsetHeight;
+
+    // Snap to other windows
+    windows.forEach(otherWindow => {
+      if (otherWindow !== draggedWindow) {
+        const otherRect = otherWindow.getBoundingClientRect();
+        
+        // Snap left edge
+        if (Math.abs(newX - otherRect.right) < SNAP_THRESHOLD) newX = otherRect.right;
+        // Snap right edge
+        if (Math.abs(newX + draggedWindow.offsetWidth - otherRect.left) < SNAP_THRESHOLD) 
+          newX = otherRect.left - draggedWindow.offsetWidth;
+        // Snap top edge
+        if (Math.abs(newY - otherRect.bottom) < SNAP_THRESHOLD) newY = otherRect.bottom;
+        // Snap bottom edge
+        if (Math.abs(newY + draggedWindow.offsetHeight - otherRect.top) < SNAP_THRESHOLD) 
+          newY = otherRect.top - draggedWindow.offsetHeight;
+      }
+    });
+
+    draggedWindow.style.left = newX + 'px';
+    draggedWindow.style.top = newY + 'px';
+    saveNotes();
+  }
+  if (isResizing && draggedWindow) {
+    const newWidth = Math.max(50, event.clientX - draggedWindow.offsetLeft);
+    const newHeight = Math.max(50, event.clientY - draggedWindow.offsetTop);
+    draggedWindow.style.width = newWidth + 'px';
+    draggedWindow.style.height = newHeight + 'px';
+    saveNotes();
+  }
+}
+
+function onMouseUp() {
+  isDragging = false;
+  isResizing = false;
+  draggedWindow = null;
+}
+
+function onContextMenu(event) {
+  event.preventDefault();
+  if (event.target.closest('.window')) {
+    showColorMenu(event.clientX, event.clientY, event.target.closest('.window'));
+  } else if (!preventNextNoteCreation) {
+    createWindow(event.clientX, event.clientY, defaultSettings.width, defaultSettings.height, defaultSettings.bgColor, defaultSettings.textColor, defaultSettings.fontSize, '');
+    saveNotes();
+  }
+  preventNextNoteCreation = false;
+}
+
+function onAuxClick(event) {
+  if (event.button === 1 && event.target.closest('.window')) {
+    const window = event.target.closest('.window');
+    window.remove();
+    windows = windows.filter(w => w !== window);
+    saveNotes();
+  }
+}
+
+function onMouseDown(event) {
+  if (isColorMenuOpen && !colorMenu.contains(event.target)) {
+    colorMenu.style.display = 'none';
+    isColorMenuOpen = false;
+  }
+}
+
+function showColorMenu(x, y, window) {
+  colorMenu.style.display = 'block';
+  colorMenu.style.left = x + 'px';
+  colorMenu.style.top = y + 'px';
+  isColorMenuOpen = true;
+  activeWindow = window;
+  
+  document.getElementById('colorPicker').value = rgbToHex(window.style.backgroundColor);
+  document.getElementById('textColorPicker').value = rgbToHex(window.querySelector('.window-textarea').style.color);
+  document.getElementById('fontSizeSlider').value = parseInt(window.querySelector('.window-textarea').style.fontSize) || 16;
+}
+
+function updateBackgroundColor(event) {
+  if (activeWindow) {
+    activeWindow.style.backgroundColor = event.target.value;
+    saveNotes();
+  }
+}
+
+function updateTextColor(event) {
+  if (activeWindow) {
+    activeWindow.querySelector('.window-textarea').style.color = event.target.value;
+    saveNotes();
+  }
+}
+
+function updateFontSize(event) {
+  if (activeWindow) {
+    activeWindow.querySelector('.window-textarea').style.fontSize = event.target.value + 'px';
+    saveNotes();
+  }
+}
+
+function setAsDefault() {
+  if (activeWindow) {
+    defaultSettings = {
+      bgColor: activeWindow.style.backgroundColor,
+      textColor: activeWindow.querySelector('.window-textarea').style.color,
+      fontSize: parseInt(activeWindow.querySelector('.window-textarea').style.fontSize),
+      width: activeWindow.offsetWidth,
+      height: activeWindow.offsetHeight
+    };
+    saveDefaultSettings();
+  }
+}
+
+function resetDefault() {
+  defaultSettings = {
+    bgColor: 'rgba(255, 255, 255, 0.8)',
+    textColor: '#000000',
+    fontSize: 16,
+    width: 150,
+    height: 125
+  };
+  saveDefaultSettings();
+}
+
+async function exportNotes() {
+  const zip = new JSZip();
+  const data = await loadFromIndexedDB();
+  zip.file('visual_notes_export.json', JSON.stringify(data));
+  const content = await zip.generateAsync({type:"blob"});
+  const url = URL.createObjectURL(content);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'visual_notes_export.zip';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importNotes() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.zip';
+  input.onchange = async e => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = async (readerEvent) => {
+      try {
+        const zip = new JSZip();
+        const zipContent = await zip.loadAsync(readerEvent.target.result);
+        const jsonFile = zipContent.file('visual_notes_export.json');
+        if (jsonFile) {
+          const jsonContent = await jsonFile.async('string');
+          const data = JSON.parse(jsonContent);
+          await saveToIndexedDB(data);
+          await reloadNotes();
+        } else {
+          alert('Invalid file format. Please upload a valid Visual Notes export file.');
+        }
+      } catch (error) {
+        console.error('Error importing notes:', error);
+        alert('An error occurred while importing notes. Please try again.');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+  input.click();
+}
+
+function rgbToHex(rgb) {
+  if (!rgb) return '#ffffff';
+  const [r, g, b] = rgb.match(/\d+/g);
+  return "#" + ((1 << 24) + (parseInt(r) << 16) + (parseInt(g) << 8) + parseInt(b)).toString(16).slice(1);
+}
+
+function onWindowResize() {
+}
+
+async function saveNotes() {
+  let notesData = windows.map(window => {
+    return {
+      x: window.offsetLeft,
+      y: window.offsetTop,
+      w: window.offsetWidth,
+      h: window.offsetHeight,
+      bg: window.style.backgroundColor,
+      tc: window.querySelector('.window-textarea').style.color,
+      fs: parseInt(window.querySelector('.window-textarea').style.fontSize),
+      c: window.querySelector('.window-textarea').value
+    };
+  });
+
+  await saveToIndexedDB({ notes: notesData, default: defaultSettings });
+}
+
+async function loadNotes() {
+  let data = await loadFromIndexedDB();
+  if (data && data.length > 0) {
+    data = data[data.length - 1];
+    if (data.default) {
+      defaultSettings = data.default;
+    }
+    if (data.notes) {
+      data.notes.forEach(note => {
+        createWindow(note.x, note.y, note.w, note.h, note.bg, note.tc, note.fs, note.c);
+      });
+    }
+  }
+}
+
+async function reloadNotes() {
+  windows.forEach(window => window.remove());
+  windows = [];
+
+  await loadNotes();
+}
+
+async function saveDefaultSettings() {
+  let data = await loadFromIndexedDB();
+  if (data && data.length > 0) {
+    data = data[data.length - 1];
+  } else {
+    data = {};
+  }
+  data.default = defaultSettings;
+  await saveToIndexedDB(data);
+}
+
+init();
+</script>
+</body></html>
