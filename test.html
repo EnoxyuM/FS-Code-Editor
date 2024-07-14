@@ -100,6 +100,13 @@
     <input type="color" id="commentColor" value="#808080">
     <label for="variableColor">Variable Color:</label>
     <input type="color" id="variableColor" value="#ff9800">
+    <label for="keywordColor">Keyword Color:</label>
+    <input type="color" id="keywordColor" value="#f92672">
+    <label for="stringColor">String Color:</label>
+    <input type="color" id="stringColor" value="#e6db74">
+    <label for="numberColor">Number Color:</label>
+    <input type="color" id="numberColor" value="#ae81ff">
+    <button id="saveColors">Save Colors</button>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.css">
@@ -141,6 +148,10 @@ const currentFileName = document.getElementById('currentFileName');
 const colorPicker = document.getElementById('colorPicker');
 const commentColorPicker = document.getElementById('commentColor');
 const variableColorPicker = document.getElementById('variableColor');
+const keywordColorPicker = document.getElementById('keywordColor');
+const stringColorPicker = document.getElementById('stringColor');
+const numberColorPicker = document.getElementById('numberColor');
+const saveColorsButton = document.getElementById('saveColors');
 
 const initialCode = `<!DOCTYPE html>
 <html lang="en">
@@ -357,6 +368,7 @@ let db;
 const DB_NAME = 'CodeEditorDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'codes';
+const COLOR_STORE_NAME = 'colors';
 
 function openDB() {
     return new Promise((resolve, reject) => {
@@ -366,6 +378,9 @@ function openDB() {
             db = event.target.result;
             if (!db.objectStoreNames.contains(STORE_NAME)) {
                 db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains(COLOR_STORE_NAME)) {
+                db.createObjectStore(COLOR_STORE_NAME, { keyPath: 'id', autoIncrement: true });
             }
         };
 
@@ -440,6 +455,38 @@ function getCodes() {
 
         request.onerror = function(event) {
             reject('Error getting codes');
+        };
+    });
+}
+
+function saveColors(colors) {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([COLOR_STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(COLOR_STORE_NAME);
+        const request = store.put(colors);
+
+        request.onsuccess = function(event) {
+            resolve(event.target.result);
+        };
+
+        request.onerror = function(event) {
+            reject('Error saving colors');
+        };
+    });
+}
+
+function getColors() {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([COLOR_STORE_NAME], 'readonly');
+        const store = transaction.objectStore(COLOR_STORE_NAME);
+        const request = store.getAll();
+
+        request.onsuccess = function(event) {
+            resolve(event.target.result);
+        };
+
+        request.onerror = function(event) {
+            reject('Error getting colors');
         };
     });
 }
@@ -584,17 +631,12 @@ function toggleColorPicker() {
     }
 }
 
-commentColorPicker.addEventListener('input', () => {
-    editor.setOption("theme", createCustomTheme());
-});
-
-variableColorPicker.addEventListener('input', () => {
-    editor.setOption("theme", createCustomTheme());
-});
-
 function createCustomTheme() {
     const commentColor = commentColorPicker.value;
     const variableColor = variableColorPicker.value;
+    const keywordColor = keywordColorPicker.value;
+    const stringColor = stringColorPicker.value;
+    const numberColor = numberColorPicker.value;
 
     const customTheme = `
         .cm-s-custom.CodeMirror {
@@ -614,6 +656,15 @@ function createCustomTheme() {
         .cm-s-custom .cm-variable {
             color: ${variableColor};
         }
+        .cm-s-custom .cm-keyword {
+            color: ${keywordColor};
+        }
+        .cm-s-custom .cm-string {
+            color: ${stringColor};
+        }
+        .cm-s-custom .cm-number {
+            color: ${numberColor};
+        }
     `;
 
     const style = document.createElement('style');
@@ -621,6 +672,33 @@ function createCustomTheme() {
     document.head.appendChild(style);
 
     return 'custom';
+}
+
+saveColorsButton.addEventListener('click', () => {
+    const colors = {
+        commentColor: commentColorPicker.value,
+        variableColor: variableColorPicker.value,
+        keywordColor: keywordColorPicker.value,
+        stringColor: stringColorPicker.value,
+        numberColor: numberColorPicker.value
+    };
+    saveColors(colors).then(() => {
+        editor.setOption("theme", createCustomTheme());
+    });
+});
+
+function loadColors() {
+    getColors().then(colors => {
+        if (colors.length > 0) {
+            const colorObj = colors[0];
+            commentColorPicker.value = colorObj.commentColor;
+            variableColorPicker.value = colorObj.variableColor;
+            keywordColorPicker.value = colorObj.keywordColor;
+            stringColorPicker.value = colorObj.stringColor;
+            numberColorPicker.value = colorObj.numberColor;
+            editor.setOption("theme", createCustomTheme());
+        }
+    });
 }
 
 // Initialize
@@ -634,6 +712,7 @@ openDB().then(() => {
         loadSavedCodes();
         updateCurrentFileName();
         updateFileInfo();
+        loadColors();
     });
 });
 </script>
