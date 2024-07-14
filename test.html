@@ -629,11 +629,10 @@ function updateFileInfo() {
 function changeColor(type) {
     const color = prompt(`Enter the new color for ${type} (hex or color name):`);
     if (color) {
-        editor.getDoc().getAllMarks().forEach(mark => mark.clear());
-        editor.setOption('theme', 'custom');
-        editor.setOption('customTheme', {
-            [type]: color
-        });
+        const style = document.createElement('style');
+        document.head.appendChild(style);
+        const sheet = style.sheet;
+        sheet.insertRule(`.cm-s-monokai span.cm-${type} { color: ${color} !important; }`, 0);
     }
 }
 
