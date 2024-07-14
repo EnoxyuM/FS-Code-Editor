@@ -681,14 +681,14 @@ function changeColor(type) {
 
 function loadColors() {
     for (const type in colorTypes) {
-        const savedColor = localStorage.getItem(color-${type});
-if (savedColor) {
-const style = document.createElement('style');
-document.head.appendChild(style);
-const sheet = style.sheet;
-sheet.insertRule(.cm-s-monokai span.cm-${colorTypes[type]} { color: ${savedColor} !important; }, 0);
-}
-}
+        const savedColor = localStorage.getItem(`color-${type}`);
+        if (savedColor) {
+            const style = document.createElement('style');
+            document.head.appendChild(style);
+            const sheet = style.sheet;
+            sheet.insertRule(`.cm-s-monokai span.cm-${colorTypes[type]} { color: ${savedColor} !important; }`, 0);
+        }
+    }
 }
 
 document.getElementById('Selection').onclick = () => changeColor('Selection');
@@ -704,17 +704,17 @@ document.getElementById('Definition').onclick = () => changeColor('Definition');
 
 // Initialize
 openDB().then(() => {
-getCodes().then(savedCodes => {
-if (savedCodes.length > 0) {
-currentCodeIndex = savedCodes.length - 1; // Load the last opened file
-editor.setValue(savedCodes[currentCodeIndex].code);
-updateScene();
-}
-loadSavedCodes();
-updateCurrentFileName();
-updateFileInfo();
-loadColors();
-});
+    getCodes().then(savedCodes => {
+        if (savedCodes.length > 0) {
+            currentCodeIndex = savedCodes.length - 1;
+            editor.setValue(savedCodes[currentCodeIndex].code);
+            updateScene();
+        }
+        loadSavedCodes();
+        updateCurrentFileName();
+        updateFileInfo();
+        loadColors();
+    });
 });
 </script>
 </body>
