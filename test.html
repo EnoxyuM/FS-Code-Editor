@@ -511,7 +511,7 @@ async function saveCurrentCode(overwrite = false) {
 
 async function loadSavedCodes() {
     const savedCodes = await getCodes();
-    menu.innerHTML = '<div id="fileInfo"></div><button id="saveBtn">Save New Code</button><button id="syntaxColorBtn">Syntax Color</button>';
+    menu.innerHTML = '<div id="fileInfo"></div><button id="saveBtn">Save New Code</button>';
     savedCodes.forEach((savedCode, index) => {
         const button = document.createElement('button');
         if (savedCode.name) {
@@ -551,7 +551,18 @@ async function loadSavedCodes() {
     });
 
     document.getElementById('saveBtn').onclick = () => saveCurrentCode(false);
-    document.getElementById('syntaxColorBtn').onclick = () => switchTheme('maokai');
+
+    // Add color change buttons
+    const colorButtons = `
+        <button id="changeCommentColorBtn">Change Comment Color</button>
+        <button id="changeVariableColorBtn">Change Variable Color</button>
+        <button id="changeKeywordColorBtn">Change Keyword Color</button>
+    `;
+    menu.insertAdjacentHTML('beforeend', colorButtons);
+
+    document.getElementById('changeCommentColorBtn').onclick = () => changeColor('comment');
+    document.getElementById('changeVariableColorBtn').onclick = () => changeColor('variable');
+    document.getElementById('changeKeywordColorBtn').onclick = () => changeColor('keyword');
 }
 
 function formatDate(date) {
@@ -615,9 +626,15 @@ function updateFileInfo() {
     });
 }
 
-function switchTheme(theme) {
-    editor.setOption('theme', theme);
-    localStorage.setItem('editorTheme', theme);
+function changeColor(type) {
+    const color = prompt(`Enter the new color for ${type} (hex or color name):`);
+    if (color) {
+        editor.getDoc().getAllMarks().forEach(mark => mark.clear());
+        editor.setOption('theme', 'custom');
+        editor.setOption('customTheme', {
+            [type]: color
+        });
+    }
 }
 
 // Initialize
@@ -631,9 +648,6 @@ openDB().then(() => {
         loadSavedCodes();
         updateCurrentFileName();
         updateFileInfo();
-
-        const savedTheme = localStorage.getItem('editorTheme') || 'monokai';
-        switchTheme(savedTheme);
     });
 });
 </script>
