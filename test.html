@@ -134,6 +134,34 @@
         .cm-s-maokai span.cm-error { background: #f92672; color: #f8f8f0; }
         .cm-s-maokai .CodeMirror-activeline-background { background: #373831; }
         .cm-s-maokai .CodeMirror-matchingbracket { text-decoration: underline; color: #fff !important; }
+        #colorPicker {
+            position: fixed;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            background: rgba(30, 30, 30, 0.9);
+            border: 1px solid #444;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 1000;
+        }
+        #colorPicker input[type="color"] {
+            margin-bottom: 10px;
+        }
+        #colorPicker button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            background: #333;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        #colorPicker button:hover {
+            background: #444;
+        }
     </style>
 </head>
 <body>
@@ -142,6 +170,19 @@
 <div id="console"></div>
 <div id="menu"></div>
 <div id="currentFileName"></div>
+<div id="colorPicker">
+    <input type="color" id="colorInput">
+    <button id="Selection">Selection</button>
+    <button id="LineNumber">Line Number</button>
+    <button id="Cursor">Cursor</button>
+    <button id="Comment">Comment</button>
+    <button id="Keyword">Keyword</button>
+    <button id="String">String</button>
+    <button id="Number">Number</button>
+    <button id="Property">Property</button>
+    <button id="Variable">Variable</button>
+    <button id="Definition">Definition</button>
+</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/theme/monokai.min.css">
@@ -180,6 +221,8 @@ const scene = document.getElementById('scene');
 const consoleElem = document.getElementById('console');
 const menu = document.getElementById('menu');
 const currentFileName = document.getElementById('currentFileName');
+const colorPicker = document.getElementById('colorPicker');
+const colorInput = document.getElementById('colorInput');
 
 const initialCode = `<!DOCTYPE html>
 <html lang="en">
@@ -551,18 +594,6 @@ async function loadSavedCodes() {
     });
 
     document.getElementById('saveBtn').onclick = () => saveCurrentCode(false);
-
-    // Add color change buttons
-    const colorButtons = `
-        <button id="changeCommentColorBtn">Change Comment Color</button>
-        <button id="changeVariableColorBtn">Change Variable Color</button>
-        <button id="changeKeywordColorBtn">Change Keyword Color</button>
-    `;
-    menu.insertAdjacentHTML('beforeend', colorButtons);
-
-    document.getElementById('changeCommentColorBtn').onclick = () => changeColor('comment');
-    document.getElementById('changeVariableColorBtn').onclick = () => changeColor('variable');
-    document.getElementById('changeKeywordColorBtn').onclick = () => changeColor('keyword');
 }
 
 function formatDate(date) {
@@ -626,28 +657,64 @@ function updateFileInfo() {
     });
 }
 
+const colorTypes = {
+    Selection: 'selected',
+    LineNumber: 'linenumber',
+    Cursor: 'cursor',
+    Comment: 'comment',
+    Keyword: 'keyword',
+    String: 'string',
+    Number: 'number',
+    Property: 'property',
+    Variable: 'variable',
+    Definition: 'def'
+};
+
 function changeColor(type) {
-    const color = prompt(`Enter the new color for ${type} (hex or color name):`);
-    if (color) {
-        const style = document.createElement('style');
-        document.head.appendChild(style);
-        const sheet = style.sheet;
-        sheet.insertRule(`.cm-s-monokai span.cm-${type} { color: ${color} !important; }`, 0);
-    }
+    const color = colorInput.value;
+    const style = document.createElement('style');
+    document.head.appendChild(style);
+    const sheet = style.sheet;
+    sheet.insertRule(`.cm-s-monokai span.cm-${colorTypes[type]} { color: ${color} !important; }`, 0);
+    localStorage.setItem(`color-${type}`, color);
 }
+
+function loadColors() {
+    for (const type in colorTypes) {
+        const savedColor = localStorage.getItem(color-${type});
+if (savedColor) {
+const style = document.createElement('style');
+document.head.appendChild(style);
+const sheet = style.sheet;
+sheet.insertRule(.cm-s-monokai span.cm-${colorTypes[type]} { color: ${savedColor} !important; }, 0);
+}
+}
+}
+
+document.getElementById('Selection').onclick = () => changeColor('Selection');
+document.getElementById('LineNumber').onclick = () => changeColor('LineNumber');
+document.getElementById('Cursor').onclick = () => changeColor('Cursor');
+document.getElementById('Comment').onclick = () => changeColor('Comment');
+document.getElementById('Keyword').onclick = () => changeColor('Keyword');
+document.getElementById('String').onclick = () => changeColor('String');
+document.getElementById('Number').onclick = () => changeColor('Number');
+document.getElementById('Property').onclick = () => changeColor('Property');
+document.getElementById('Variable').onclick = () => changeColor('Variable');
+document.getElementById('Definition').onclick = () => changeColor('Definition');
 
 // Initialize
 openDB().then(() => {
-    getCodes().then(savedCodes => {
-        if (savedCodes.length > 0) {
-            currentCodeIndex = savedCodes.length - 1; // Load the last opened file
-            editor.setValue(savedCodes[currentCodeIndex].code);
-            updateScene();
-        }
-        loadSavedCodes();
-        updateCurrentFileName();
-        updateFileInfo();
-    });
+getCodes().then(savedCodes => {
+if (savedCodes.length > 0) {
+currentCodeIndex = savedCodes.length - 1; // Load the last opened file
+editor.setValue(savedCodes[currentCodeIndex].code);
+updateScene();
+}
+loadSavedCodes();
+updateCurrentFileName();
+updateFileInfo();
+loadColors();
+});
 });
 </script>
 </body>
