@@ -114,6 +114,7 @@
             flex-direction: column;
             align-items: center;
             z-index: 1000;
+            display: none;
         }
         #colorPicker input[type="color"] {
             margin-bottom: 10px;
@@ -298,7 +299,7 @@ let shiftAltPressed = false;
 
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
-        toggleMenu();
+        toggleColorPicker();
     } else if (event.altKey && !event.shiftKey && !altPressed) {
         event.preventDefault();
         altPressed = true;
@@ -343,7 +344,7 @@ showingEditor = true;
 scene.addEventListener('load', function() {
     scene.contentWindow.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
-            toggleMenu();
+            toggleColorPicker();
         } else if (event.altKey && !event.shiftKey && !altPressed) {
             event.preventDefault();
             altPressed = true;
@@ -384,12 +385,11 @@ editor.getWrapperElement().addEventListener('wheel', function(e) {
 window.addEventListener('beforeunload', function (event) {
     event.stopImmediatePropagation();
 });
-function toggleMenu() {
-    if (menu.style.display === 'none' || menu.style.display === '') {
-        menu.style.display = 'block';
-        loadSavedCodes();
+function toggleColorPicker() {
+    if (colorPicker.style.display === 'none' || colorPicker.style.display === '') {
+        colorPicker.style.display = 'block';
     } else {
-        menu.style.display = 'none';
+        colorPicker.style.display = 'none';
     }
 }
 
