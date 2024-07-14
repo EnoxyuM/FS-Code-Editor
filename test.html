@@ -642,6 +642,7 @@ function applyColors(colors) {
         .cm-s-monokai span.cm-number { color: ${colors.numberColor}; }
     `;
     document.head.appendChild(style);
+    editor.refresh(); // Ensure CodeMirror redraws with the new styles
 }
 
 saveColorsButton.addEventListener('click', () => {
