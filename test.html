@@ -1,4 +1,4 @@
-<html><head><style>
+<html><head><base href="https://websim.ai"><style>
         body,html{margin:0;padding:0;height:100vh;overflow:hidden;font-family:sans-serif;background:#1e1e1e;color:#e0e0e0}
         #editor,#scene,#console{width:100%;border:none;position:absolute;top:0;left:0}
         #editor,#scene{height:100%;}
@@ -124,24 +124,28 @@
         .color-item input[type="color"] {
             width: 50px;
         }
+        #colorBtn {
+            display: none;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            z-index: 1001;
+        }
+        #colorBtn:hover {
+            background: #45a049;
+        }
     </style></head><body><div id="editor"></div>
 <iframe id="scene"></iframe>
 <div id="console"></div>
 <div id="menu"></div>
 <div id="currentFileName"></div>
+<button id="colorBtn">Color</button>
 <div id="colorPicker">
-    <div class="color-item">
-        <label for="Selection">Selection</label>
-        <input type="color" id="Selection">
-    </div>
-    <div class="color-item">
-        <label for="LineNumber">Line Number</label>
-        <input type="color" id="LineNumber">
-    </div>
-    <div class="color-item">
-        <label for="Cursor">Cursor</label>
-        <input type="color" id="Cursor">
-    </div>
     <div class="color-item">
         <label for="Comment">Comment</label>
         <input type="color" id="Comment">
@@ -210,6 +214,7 @@ const consoleElem = document.getElementById('console');
 const menu = document.getElementById('menu');
 const currentFileName = document.getElementById('currentFileName');
 const colorPicker = document.getElementById('colorPicker');
+const colorBtn = document.getElementById('colorBtn');
 
 const initialCode = `<!DOCTYPE html>
 <html lang="en">
@@ -304,7 +309,8 @@ function toggleEditor() {
 }
 
 function toggleConsole() {
-    if (showingConsole) {consoleElem.style.display = 'none';
+    if (showingConsole) {
+        consoleElem.style.display = 'none';
     } else {
         consoleElem.style.display = 'block';
     }
@@ -317,7 +323,6 @@ let shiftAltPressed = false;
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         toggleMenu();
-        toggleColorPicker();
     } else if (event.altKey && !event.shiftKey && !altPressed) {
         event.preventDefault();
         altPressed = true;
@@ -363,7 +368,6 @@ scene.addEventListener('load', function() {
     scene.contentWindow.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
             toggleMenu();
-            toggleColorPicker();
         } else if (event.altKey && !event.shiftKey && !altPressed) {
             event.preventDefault();
             altPressed = true;
@@ -382,6 +386,7 @@ scene.addEventListener('load', function() {
         }
     });
 });
+
 let fontSize = 14;
 editor.getWrapperElement().addEventListener('wheel', function(e) {
     if (e.ctrlKey) {
@@ -392,6 +397,7 @@ editor.getWrapperElement().addEventListener('wheel', function(e) {
         editor.refresh();
     }
 });
+
 let opacity = 0.5;
 editor.getWrapperElement().addEventListener('wheel', function(e) {
     if (e.shiftKey) {
@@ -401,25 +407,30 @@ editor.getWrapperElement().addEventListener('wheel', function(e) {
         editor.getWrapperElement().style.backgroundColor = `rgba(30, 30, 30, ${opacity})`;
     }
 });
+
 window.addEventListener('beforeunload', function (event) {
     event.stopImmediatePropagation();
 });
+
 function toggleMenu() {
     if (menu.style.display === 'none' || menu.style.display === '') {
         menu.style.display = 'block';
+        colorBtn.style.display = 'block';
         loadSavedCodes();
     } else {
         menu.style.display = 'none';
+        colorBtn.style.display = 'none';
+        colorPicker.style.display = 'none';
     }
 }
 
-function toggleColorPicker() {
+colorBtn.addEventListener('click', function() {
     if (colorPicker.style.display === 'none' || colorPicker.style.display === '') {
         colorPicker.style.display = 'flex';
     } else {
         colorPicker.style.display = 'none';
     }
-}
+});
 
 let db;
 const DB_NAME = 'CodeEditorDB';
@@ -646,9 +657,6 @@ function updateFileInfo() {
 }
 
 const colorTypes = {
-    Selection: 'selected',
-    LineNumber: 'linenumber',
-    Cursor: 'cursor',
     Comment: 'comment',
     Keyword: 'keyword',
     String: 'string',
