@@ -102,13 +102,54 @@
         #fileInfo {
             margin-bottom: 10px;
         }
+        #colorPickerContainer {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #colorPickerContainer label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #colorPickerContainer input[type="color"] {
+            width: 50px;
+            height: 30px;
+        }
     </style>
 </head>
 <body>
 <div id="editor"></div>
 <iframe id="scene"></iframe>
 <div id="console"></div>
-<div id="menu"></div>
+<div id="menu">
+    <div id="fileInfo"></div>
+    <button id="saveBtn">Save New Code</button>
+    <button id="syntaxColorBtn">Syntax Color</button>
+    <div id="colorPickerContainer">
+        <label>
+            Background:
+            <input type="color" id="backgroundPicker" value="#272822">
+        </label>
+        <label>
+            Foreground:
+            <input type="color" id="foregroundPicker" value="#f8f8f2">
+        </label>
+        <label>
+            Keyword:
+            <input type="color" id="keywordPicker" value="#f92672">
+        </label>
+        <label>
+            String:
+            <input type="color" id="stringPicker" value="#e6db74">
+        </label>
+        <label>
+            Comment:
+            <input type="color" id="commentPicker" value="#75715e">
+        </label>
+        <button id="saveColorsBtn">Save Colors</button>
+    </div>
+</div>
 <div id="currentFileName"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.css">
@@ -148,6 +189,14 @@ const scene = document.getElementById('scene');
 const consoleElem = document.getElementById('console');
 const menu = document.getElementById('menu');
 const currentFileName = document.getElementById('currentFileName');
+const colorPickerContainer = document.getElementById('colorPickerContainer');
+const syntaxColorBtn = document.getElementById('syntaxColorBtn');
+const saveColorsBtn = document.getElementById('saveColorsBtn');
+const backgroundPicker = document.getElementById('backgroundPicker');
+const foregroundPicker = document.getElementById('foregroundPicker');
+const keywordPicker = document.getElementById('keywordPicker');
+const stringPicker = document.getElementById('stringPicker');
+const commentPicker = document.getElementById('commentPicker');
 
 const initialCode = `<!DOCTYPE html>
 <html lang="en">
@@ -355,6 +404,7 @@ function toggleMenu() {
         loadSavedCodes();
     } else {
         menu.style.display = 'none';
+        colorPickerContainer.style.display = 'none';
     }
 }
 
@@ -479,7 +529,7 @@ async function saveCurrentCode(overwrite = false) {
 
 async function loadSavedCodes() {
     const savedCodes = await getCodes();
-    menu.innerHTML = '<div id="fileInfo"></div><button id="saveBtn">Save New Code</button>';
+    menu.innerHTML = '<div id="fileInfo"></div><button id="saveBtn">Save New Code</button><button id="syntaxColorBtn">Syntax Color</button>';
     savedCodes.forEach((savedCode, index) => {
         const button = document.createElement('button');
         if (savedCode.name) {
@@ -519,6 +569,7 @@ async function loadSavedCodes() {
     });
 
     document.getElementById('saveBtn').onclick = () => saveCurrentCode(false);
+    document.getElementById('syntaxColorBtn').onclick = toggleColorPicker;
 }
 
 function formatDate(date) {
@@ -581,6 +632,32 @@ function updateFileInfo() {
         document.getElementById('fileInfo').textContent = `${totalSize} b, Files: ${savedCodes.length}`;
     });
 }
+
+function toggleColorPicker() {
+    if (colorPickerContainer.style.display === 'none' || colorPickerContainer.style.display === '') {
+        colorPickerContainer.style.display = 'flex';
+    } else {
+        colorPickerContainer.style.display = 'none';
+    }
+}
+
+function applyColors() {
+    const backgroundColor = backgroundPicker.value;
+    const foregroundColor = foregroundPicker.value;
+    const keywordColor = keywordPicker.value;
+    const stringColor = stringPicker.value;
+    const commentColor = commentPicker.value;
+
+    document.documentElement.style.setProperty('--background-color', backgroundColor);
+    document.documentElement.style.setProperty('--foreground-color', foregroundColor);
+    document.documentElement.style.setProperty('--keyword-color', keywordColor);
+    document.documentElement.style.setProperty('--string-color', stringColor);
+    document.documentElement.style.setProperty('--comment-color', commentColor);
+
+    editor.setOption('theme', 'custom-theme');
+}
+
+saveColorsBtn.onclick = applyColors;
 
 // Initialize
 openDB().then(() => {
