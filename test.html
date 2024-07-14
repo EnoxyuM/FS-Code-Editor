@@ -633,21 +633,62 @@ function toggleColorPicker() {
 }
 
 function applyColors(colors) {
-    // Remove existing color styles
-    const existingStyles = document.head.querySelectorAll('style[data-theme="custom"]');
-    existingStyles.forEach(style => style.remove());
+    editor.getDoc().getAllMarks().forEach(mark => mark.clear());
+    editor.setOption("highlightSelectionMatches", false);
+    editor.setOption("highlightSelectionMatches", {showToken: /\w/, annotateScrollbar: true});
 
-    const style = document.createElement('style');
-    style.setAttribute('data-theme', 'custom');
-    style.innerHTML = `
-        .cm-s-monokai span.cm-comment { color: ${colors.commentColor} !important; }
-        .cm-s-monokai span.cm-variable { color: ${colors.variableColor} !important; }
-        .cm-s-monokai span.cm-keyword { color: ${colors.keywordColor} !important; }
-        .cm-s-monokai span.cm-string { color: ${colors.stringColor} !important; }
-        .cm-s-monokai span.cm-number { color: ${colors.numberColor} !important; }
-    `;
-    document.head.appendChild(style);
-    editor.refresh(); // Ensure CodeMirror redraws with the new styles
+    editor.addOverlay({
+        token: function(stream, state) {
+            if (stream.match("//")) {
+                stream.skipToEnd();
+                return "comment";
+            }
+            while (stream.next() != null && !stream.match("//", false)) {}
+            return null;
+        }
+    });
+
+    editor.addOverlay({
+        token: function(stream, state) {
+            if (stream.match(/^[a-zA-Z_$][a-zA-Z0-9_$]*/)) {
+                return "variable";
+            }
+            stream.next();
+            return null;
+        }
+    });
+
+    editor.addOverlay({
+        token: function(stream, state) {
+            if (stream.match(/^(if|else|while|for|function|return|var|let|const|class|new|this|super|extends|import|export|default|from|as|await|async|try|catch|finally|throw|debugger|yield|enum|implements|interface|package|private|protected|public|static|null|true|false|undefined|NaN|Infinity)$/)) {
+                return "keyword";
+            }
+            stream.next();
+            return null;
+        }
+    });
+
+    editor.addOverlay({
+        token: function(stream, state) {
+            if (stream.match(/^"([^"\\]|\\.)*"/) || stream.match(/^'([^'\\]|\\.)*'/)) {
+                return "string";
+            }
+            stream.next();
+            return null;
+        }
+    });
+
+    editor.addOverlay({
+        token: function(stream, state) {
+            if (stream.match(/^\d+(\.\d+)?([eE][+-]?\d+)?/)) {
+                return "number";
+            }
+            stream.next();
+            return null;
+        }
+    });
+
+    editor.refresh();
 }
 
 saveColorsButton.addEventListener('click', () => {
