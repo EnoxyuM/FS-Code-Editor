@@ -1,4 +1,4 @@
-<html><head><style>
+<html><head><base href="https://websim.ai"><style>
         body,html{margin:0;padding:0;height:100vh;overflow:hidden;font-family:sans-serif;background:#1e1e1e;color:#e0e0e0}
         #editor,#scene,#console{width:100%;border:none;position:absolute;top:0;left:0}
         #editor,#scene{height:100%;}
@@ -174,6 +174,18 @@
         <label for="Definition">Definition</label>
         <input type="color" id="Definition">
     </div>
+    <div class="color-item">
+        <label for="NullUndefined">Null/Undefined</label>
+        <input type="color" id="NullUndefined">
+    </div>
+    <div class="color-item">
+        <label for="HTMLTag">HTML Tag</label>
+        <input type="color" id="HTMLTag">
+    </div>
+    <div class="color-item">
+        <label for="HTMLAttribute">HTML Attribute</label>
+        <input type="color" id="HTMLAttribute">
+    </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.css">
@@ -295,8 +307,7 @@ function toggleEditor() {
     if (showingEditor) {
         editor.getWrapperElement().style.display = 'none';
         scene.focus();
-        scene.style.zIndex = '5';
-        editor.getWrapperElement().style.pointerEvents = 'none';
+        scene.style.zIndex = '5';editor.getWrapperElement().style.pointerEvents = 'none';
         scene.style.pointerEvents = 'auto';
     } else {
         editor.getWrapperElement().style.display = 'block';
@@ -394,7 +405,7 @@ editor.getWrapperElement().addEventListener('wheel', function(e) {
         fontSize += e.deltaY > 0 ? -1 : 1;
         fontSize = Math.max(8, Math.min(24, fontSize));
         editor.getWrapperElement().style.fontSize = fontSize + 'px';
-        editor.refresh();
+        editor .refresh();
     }
 });
 
@@ -663,7 +674,10 @@ const colorTypes = {
     Number: 'number',
     Property: 'property',
     Variable: 'variable',
-    Definition: 'def'
+    Definition: 'def',
+    NullUndefined: 'atom',
+    HTMLTag: 'tag',
+    HTMLAttribute: 'attribute'
 };
 
 function changeColor(type) {
