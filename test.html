@@ -299,7 +299,7 @@ let shiftAltPressed = false;
 
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
-        toggleColorPicker();
+        toggleMenu();
     } else if (event.altKey && !event.shiftKey && !altPressed) {
         event.preventDefault();
         altPressed = true;
@@ -344,7 +344,7 @@ showingEditor = true;
 scene.addEventListener('load', function() {
     scene.contentWindow.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
-            toggleColorPicker();
+            toggleMenu();
         } else if (event.altKey && !event.shiftKey && !altPressed) {
             event.preventDefault();
             altPressed = true;
@@ -385,11 +385,12 @@ editor.getWrapperElement().addEventListener('wheel', function(e) {
 window.addEventListener('beforeunload', function (event) {
     event.stopImmediatePropagation();
 });
-function toggleColorPicker() {
-    if (colorPicker.style.display === 'none' || colorPicker.style.display === '') {
-        colorPicker.style.display = 'block';
+function toggleMenu() {
+    if (menu.style.display === 'none' || menu.style.display === '') {
+        menu.style.display = 'block';
+        loadSavedCodes();
     } else {
-        colorPicker.style.display = 'none';
+        menu.style.display = 'none';
     }
 }
 
