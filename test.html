@@ -1,10 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FS Code Editor</title>
-    <style>
+<html><head><style>
         body,html{margin:0;padding:0;height:100vh;overflow:hidden;font-family:sans-serif;background:#1e1e1e;color:#e0e0e0}
         #editor,#scene,#console{width:100%;border:none;position:absolute;top:0;left:0}
         #editor,#scene{height:100%;}
@@ -110,47 +104,72 @@
             background: rgba(30, 30, 30, 0.9);
             border: 1px solid #444;
             padding: 20px;
-            display: flex;
+            display: none;
             flex-direction: column;
             align-items: center;
             z-index: 1000;
-            display: none;
+            max-height: 80vh;
+            overflow-y: auto;
         }
-        #colorPicker input[type="color"] {
+        .color-item {
+            display: flex;
+            align-items: center;
             margin-bottom: 10px;
-        }
-        #colorPicker button {
             width: 100%;
-            padding: 10px;
-            margin: 5px 0;
-            background: #333;
-            color: #fff;
-            border: none;
-            cursor: pointer;
         }
-        #colorPicker button:hover {
-            background: #444;
+        .color-item label {
+            flex: 1;
+            margin-right: 10px;
         }
-    </style>
-</head>
-<body>
-<div id="editor"></div>
+        .color-item input[type="color"] {
+            width: 50px;
+        }
+    </style></head><body><div id="editor"></div>
 <iframe id="scene"></iframe>
 <div id="console"></div>
 <div id="menu"></div>
 <div id="currentFileName"></div>
 <div id="colorPicker">
-    <input type="color" id="colorInput">
-    <button id="Selection">Selection</button>
-    <button id="LineNumber">Line Number</button>
-    <button id="Cursor">Cursor</button>
-    <button id="Comment">Comment</button>
-    <button id="Keyword">Keyword</button>
-    <button id="String">String</button>
-    <button id="Number">Number</button>
-    <button id="Property">Property</button>
-    <button id="Variable">Variable</button>
-    <button id="Definition">Definition</button>
+    <div class="color-item">
+        <label for="Selection">Selection</label>
+        <input type="color" id="Selection">
+    </div>
+    <div class="color-item">
+        <label for="LineNumber">Line Number</label>
+        <input type="color" id="LineNumber">
+    </div>
+    <div class="color-item">
+        <label for="Cursor">Cursor</label>
+        <input type="color" id="Cursor">
+    </div>
+    <div class="color-item">
+        <label for="Comment">Comment</label>
+        <input type="color" id="Comment">
+    </div>
+    <div class="color-item">
+        <label for="Keyword">Keyword</label>
+        <input type="color" id="Keyword">
+    </div>
+    <div class="color-item">
+        <label for="String">String</label>
+        <input type="color" id="String">
+    </div>
+    <div class="color-item">
+        <label for="Number">Number</label>
+        <input type="color" id="Number">
+    </div>
+    <div class="color-item">
+        <label for="Property">Property</label>
+        <input type="color" id="Property">
+    </div>
+    <div class="color-item">
+        <label for="Variable">Variable</label>
+        <input type="color" id="Variable">
+    </div>
+    <div class="color-item">
+        <label for="Definition">Definition</label>
+        <input type="color" id="Definition">
+    </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.css">
@@ -191,7 +210,6 @@ const consoleElem = document.getElementById('console');
 const menu = document.getElementById('menu');
 const currentFileName = document.getElementById('currentFileName');
 const colorPicker = document.getElementById('colorPicker');
-const colorInput = document.getElementById('colorInput');
 
 const initialCode = `<!DOCTYPE html>
 <html lang="en">
@@ -286,8 +304,7 @@ function toggleEditor() {
 }
 
 function toggleConsole() {
-    if (showingConsole) {
-        consoleElem.style.display = 'none';
+    if (showingConsole) {consoleElem.style.display = 'none';
     } else {
         consoleElem.style.display = 'block';
     }
@@ -300,6 +317,7 @@ let shiftAltPressed = false;
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         toggleMenu();
+        toggleColorPicker();
     } else if (event.altKey && !event.shiftKey && !altPressed) {
         event.preventDefault();
         altPressed = true;
@@ -345,6 +363,7 @@ scene.addEventListener('load', function() {
     scene.contentWindow.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
             toggleMenu();
+            toggleColorPicker();
         } else if (event.altKey && !event.shiftKey && !altPressed) {
             event.preventDefault();
             altPressed = true;
@@ -391,6 +410,14 @@ function toggleMenu() {
         loadSavedCodes();
     } else {
         menu.style.display = 'none';
+    }
+}
+
+function toggleColorPicker() {
+    if (colorPicker.style.display === 'none' || colorPicker.style.display === '') {
+        colorPicker.style.display = 'flex';
+    } else {
+        colorPicker.style.display = 'none';
     }
 }
 
@@ -632,7 +659,7 @@ const colorTypes = {
 };
 
 function changeColor(type) {
-    const color = colorInput.value;
+    const color = document.getElementById(type).value;
     const style = document.createElement('style');
     document.head.appendChild(style);
     const sheet = style.sheet;
@@ -644,6 +671,7 @@ function loadColors() {
     for (const type in colorTypes) {
         const savedColor = localStorage.getItem(`color-${type}`);
         if (savedColor) {
+            document.getElementById(type).value = savedColor;
             const style = document.createElement('style');
             document.head.appendChild(style);
             const sheet = style.sheet;
@@ -652,16 +680,9 @@ function loadColors() {
     }
 }
 
-document.getElementById('Selection').onclick = () => changeColor('Selection');
-document.getElementById('LineNumber').onclick = () => changeColor('LineNumber');
-document.getElementById('Cursor').onclick = () => changeColor('Cursor');
-document.getElementById('Comment').onclick = () => changeColor('Comment');
-document.getElementById('Keyword').onclick = () => changeColor('Keyword');
-document.getElementById('String').onclick = () => changeColor('String');
-document.getElementById('Number').onclick = () => changeColor('Number');
-document.getElementById('Property').onclick = () => changeColor('Property');
-document.getElementById('Variable').onclick = () => changeColor('Variable');
-document.getElementById('Definition').onclick = () => changeColor('Definition');
+for (const type in colorTypes) {
+    document.getElementById(type).addEventListener('change', () => changeColor(type));
+}
 
 openDB().then(() => {
     getCodes().then(savedCodes => {
