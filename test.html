@@ -633,13 +633,18 @@ function toggleColorPicker() {
 }
 
 function applyColors(colors) {
+    // Remove existing color styles
+    const existingStyles = document.head.querySelectorAll('style[data-theme="custom"]');
+    existingStyles.forEach(style => style.remove());
+
     const style = document.createElement('style');
+    style.setAttribute('data-theme', 'custom');
     style.innerHTML = `
-        .cm-s-monokai span.cm-comment { color: ${colors.commentColor}; }
-        .cm-s-monokai span.cm-variable { color: ${colors.variableColor}; }
-        .cm-s-monokai span.cm-keyword { color: ${colors.keywordColor}; }
-        .cm-s-monokai span.cm-string { color: ${colors.stringColor}; }
-        .cm-s-monokai span.cm-number { color: ${colors.numberColor}; }
+        .cm-s-monokai span.cm-comment { color: ${colors.commentColor} !important; }
+        .cm-s-monokai span.cm-variable { color: ${colors.variableColor} !important; }
+        .cm-s-monokai span.cm-keyword { color: ${colors.keywordColor} !important; }
+        .cm-s-monokai span.cm-string { color: ${colors.stringColor} !important; }
+        .cm-s-monokai span.cm-number { color: ${colors.numberColor} !important; }
     `;
     document.head.appendChild(style);
     editor.refresh(); // Ensure CodeMirror redraws with the new styles
