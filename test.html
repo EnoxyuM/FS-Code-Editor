@@ -102,19 +102,6 @@
         #fileInfo {
             margin-bottom: 10px;
         }
-        #colorPicker {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            background: rgba(30, 30, 30, 0.9);
-            border: 1px solid #444;
-            padding: 10px;
-            display: none;
-            z-index: 1000;
-        }
-        #colorPicker input {
-            margin: 5px 0;
-        }
     </style>
 </head>
 <body>
@@ -123,19 +110,6 @@
 <div id="console"></div>
 <div id="menu"></div>
 <div id="currentFileName"></div>
-<div id="colorPicker">
-    <label for="commentColor">Comment Color:</label>
-    <input type="color" id="commentColor" value="#808080">
-    <label for="variableColor">Variable Color:</label>
-    <input type="color" id="variableColor" value="#ff9800">
-    <label for="keywordColor">Keyword Color:</label>
-    <input type="color" id="keywordColor" value="#f92672">
-    <label for="stringColor">String Color:</label>
-    <input type="color" id="stringColor" value="#e6db74">
-    <label for="numberColor">Number Color:</label>
-    <input type="color" id="numberColor" value="#ae81ff">
-    <button id="saveColors">Save Colors</button>
-</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/theme/monokai.min.css">
@@ -174,13 +148,6 @@ const scene = document.getElementById('scene');
 const consoleElem = document.getElementById('console');
 const menu = document.getElementById('menu');
 const currentFileName = document.getElementById('currentFileName');
-const colorPicker = document.getElementById('colorPicker');
-const commentColorPicker = document.getElementById('commentColor');
-const variableColorPicker = document.getElementById('variableColor');
-const keywordColorPicker = document.getElementById('keywordColor');
-const stringColorPicker = document.getElementById('stringColor');
-const numberColorPicker = document.getElementById('numberColor');
-const saveColorsButton = document.getElementById('saveColors');
 
 const initialCode = `<!DOCTYPE html>
 <html lang="en">
@@ -289,7 +256,6 @@ let shiftAltPressed = false;
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         toggleMenu();
-        toggleColorPicker();
     } else if (event.altKey && !event.shiftKey && !altPressed) {
         event.preventDefault();
         altPressed = true;
@@ -335,7 +301,6 @@ scene.addEventListener('load', function() {
     scene.contentWindow.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
             toggleMenu();
-            toggleColorPicker();
         } else if (event.altKey && !event.shiftKey && !altPressed) {
             event.preventDefault();
             altPressed = true;
@@ -397,7 +362,6 @@ let db;
 const DB_NAME = 'CodeEditorDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'codes';
-const COLOR_STORE_NAME = 'colors';
 
 function openDB() {
     return new Promise((resolve, reject) => {
@@ -407,9 +371,6 @@ function openDB() {
             db = event.target.result;
             if (!db.objectStoreNames.contains(STORE_NAME)) {
                 db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
-            }
-            if (!db.objectStoreNames.contains(COLOR_STORE_NAME)) {
-                db.createObjectStore(COLOR_STORE_NAME, { keyPath: 'id', autoIncrement: true });
             }
         };
 
@@ -484,38 +445,6 @@ function getCodes() {
 
         request.onerror = function(event) {
             reject('Error getting codes');
-        };
-    });
-}
-
-function saveColors(colors) {
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction([COLOR_STORE_NAME], 'readwrite');
-        const store = transaction.objectStore(COLOR_STORE_NAME);
-        const request = store.put(colors);
-
-        request.onsuccess = function(event) {
-            resolve(event.target.result);
-        };
-
-        request.onerror = function(event) {
-            reject('Error saving colors');
-        };
-    });
-}
-
-function getColors() {
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction([COLOR_STORE_NAME], 'readonly');
-        const store = transaction.objectStore(COLOR_STORE_NAME);
-        const request = store.getAll();
-
-        request.onsuccess = function(event) {
-            resolve(event.target.result);
-        };
-
-        request.onerror = function(event) {
-            reject('Error getting colors');
         };
     });
 }
@@ -653,70 +582,6 @@ function updateFileInfo() {
     });
 }
 
-function toggleColorPicker() {
-    if (colorPicker.style.display === 'none' || colorPicker.style.display === '') {
-        colorPicker.style.display = 'block';
-    } else {
-        colorPicker.style.display = 'none';
-    }
-}
-
-function createCustomTheme() {
-    const commentColor = commentColorPicker.value;
-    const variableColor = variableColorPicker.value;
-    const keywordColor = keywordColorPicker.value;
-    const stringColor = stringColorPicker.value;
-    const numberColor = numberColorPicker.value;
-
-    CodeMirror.defineTheme("custom", {
-        background: "transparent",
-        foreground: "#f8f8f2",
-        selection: "#49483E",
-        cursor: "#F8F8F0",
-        lineHighlight: "rgba(255, 255, 255, 0.1)",
-        gutterBackground: "rgba(30, 30, 30, 0.5)",
-        gutterForeground: "#5c5c5c",
-        styles: [
-            { token: "comment", color: commentColor },
-            { token: "variable", color: variableColor },
-            { token: "keyword", color: keywordColor },
-            { token: "string", color: stringColor },
-            { token: "number", color: numberColor }
-        ]
-    });
-
-    return "custom";
-}
-
-saveColorsButton.addEventListener('click', () => {
-    const colors = {
-        commentColor: commentColorPicker.value,
-        variableColor: variableColorPicker.value,
-        keywordColor: keywordColorPicker.value,
-        stringColor: stringColorPicker.value,
-        numberColor: numberColorPicker.value
-    };
-    saveColors(colors).then(() => {
-        createCustomTheme();
-        editor.setOption("theme", "custom");
-    });
-});
-
-function loadColors() {
-    getColors().then(colors => {
-        if (colors.length > 0) {
-            const colorObj = colors[0];
-            commentColorPicker.value = colorObj.commentColor;
-            variableColorPicker.value = colorObj.variableColor;
-            keywordColorPicker.value = colorObj.keywordColor;
-            stringColorPicker.value = colorObj.stringColor;
-            numberColorPicker.value = colorObj.numberColor;
-            createCustomTheme();
-            editor.setOption("theme", "custom");
-        }
-    });
-}
-
 // Initialize
 openDB().then(() => {
     getCodes().then(savedCodes => {
@@ -728,7 +593,6 @@ openDB().then(() => {
         loadSavedCodes();
         updateCurrentFileName();
         updateFileInfo();
-        loadColors();
     });
 });
 </script>
