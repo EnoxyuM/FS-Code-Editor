@@ -10,7 +10,7 @@
         #editor,#scene{height:100%;}
         #editor {z-index: 10;}
         #editor .CodeMirror{height:100%;background-color: transparent;}
-        .cm-s-monokai.CodeMirror { background: transparent; }
+        .cm-s-monokai.CodeMirror { background: transparent; color: #f8f8f2; }
         .cm-s-monokai .CodeMirror-gutters { background: rgba(30, 30, 30, 0.5); border-right: 0px; }
         .cm-s-monokai .CodeMirror-linenumber { color: #5c5c5c; }
         #console {height:30%;bottom:0;top:auto;background-color:rgba(0,0,0,0.8);color:#fff;overflow-y:auto;display:none;z-index:20;padding:10px;box-sizing:border-box;font-family:monospace;}
@@ -97,9 +97,9 @@
 <div id="currentFileName"></div>
 <div id="colorPicker">
     <label for="commentColor">Comment Color:</label>
-    <input type="color" id="commentColor" value="#75715e">
+    <input type="color" id="commentColor" value="#808080">
     <label for="variableColor">Variable Color:</label>
-    <input type="color" id="variableColor" value="#f8f8f2">
+    <input type="color" id="variableColor" value="#ff9800">
     <label for="keywordColor">Keyword Color:</label>
     <input type="color" id="keywordColor" value="#f92672">
     <label for="stringColor">String Color:</label>
@@ -110,6 +110,7 @@
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/theme/monokai.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/mode/htmlmixed/htmlmixed.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/mode/javascript/javascript.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/mode/css/css.min.js"></script>
@@ -118,7 +119,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/addon/search/match-highlighter.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/addon/scroll/annotatescrollbar.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/addon/search/matchesonscrollbar.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/theme/monokai.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/addon/mode/simple.min.js"></script>
 <script>
 const editor = CodeMirror(document.getElementById("editor"), {
     lineNumbers: true,
@@ -632,24 +633,31 @@ function toggleColorPicker() {
     }
 }
 
-function updateMonokaiTheme() {
+function createCustomTheme() {
     const commentColor = commentColorPicker.value;
     const variableColor = variableColorPicker.value;
     const keywordColor = keywordColorPicker.value;
     const stringColor = stringColorPicker.value;
     const numberColor = numberColorPicker.value;
 
-    const newStyle = document.createElement('style');
-    newStyle.textContent = `
-        .cm-s-monokai .cm-comment { color: ${commentColor} !important; }
-        .cm-s-monokai .cm-variable { color: ${variableColor} !important; }
-        .cm-s-monokai .cm-keyword { color: ${keywordColor} !important; }
-        .cm-s-monokai .cm-string { color: ${stringColor} !important; }
-        .cm-s-monokai .cm-number { color: ${numberColor} !important; }
-    `;
-    document.head.appendChild(newStyle);
+    CodeMirror.defineTheme("custom", {
+        background: "transparent",
+        foreground: "#f8f8f2",
+        selection: "#49483E",
+        cursor: "#F8F8F0",
+        lineHighlight: "rgba(255, 255, 255, 0.1)",
+        gutterBackground: "rgba(30, 30, 30, 0.5)",
+        gutterForeground: "#5c5c5c",
+        styles: [
+            { token: "comment", color: commentColor },
+            { token: "variable", color: variableColor },
+            { token: "keyword", color: keywordColor },
+            { token: "string", color: stringColor },
+            { token: "number", color: numberColor }
+        ]
+    });
 
-    editor.refresh();
+    return "custom";
 }
 
 saveColorsButton.addEventListener('click', () => {
@@ -661,7 +669,8 @@ saveColorsButton.addEventListener('click', () => {
         numberColor: numberColorPicker.value
     };
     saveColors(colors).then(() => {
-        updateMonokaiTheme();
+        createCustomTheme();
+        editor.setOption("theme", "custom");
     });
 });
 
@@ -674,7 +683,8 @@ function loadColors() {
             keywordColorPicker.value = colorObj.keywordColor;
             stringColorPicker.value = colorObj.stringColor;
             numberColorPicker.value = colorObj.numberColor;
-            updateMonokaiTheme();
+            createCustomTheme();
+            editor.setOption("theme", "custom");
         }
     });
 }
