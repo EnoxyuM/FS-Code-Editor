@@ -632,63 +632,31 @@ function toggleColorPicker() {
     }
 }
 
-function applyColors(colors) {
-    editor.getDoc().getAllMarks().forEach(mark => mark.clear());
-    editor.setOption("highlightSelectionMatches", false);
-    editor.setOption("highlightSelectionMatches", {showToken: /\w/, annotateScrollbar: true});
+function createCustomTheme() {
+    const commentColor = commentColorPicker.value;
+    const variableColor = variableColorPicker.value;
+    const keywordColor = keywordColorPicker.value;
+    const stringColor = stringColorPicker.value;
+    const numberColor = numberColorPicker.value;
 
-    editor.addOverlay({
-        token: function(stream, state) {
-            if (stream.match("//")) {
-                stream.skipToEnd();
-                return "comment";
-            }
-            while (stream.next() != null && !stream.match("//", false)) {}
-            return null;
-        }
+    CodeMirror.defineTheme("custom", {
+        background: "transparent",
+        foreground: "#f8f8f2",
+        selection: "#49483E",
+        cursor: "#F8F8F0",
+        lineHighlight: "rgba(255, 255, 255, 0.1)",
+        gutterBackground: "rgba(30, 30, 30, 0.5)",
+        gutterForeground: "#5c5c5c",
+        styles: [
+            { token: "comment", color: commentColor },
+            { token: "variable", color: variableColor },
+            { token: "keyword", color: keywordColor },
+            { token: "string", color: stringColor },
+            { token: "number", color: numberColor }
+        ]
     });
 
-    editor.addOverlay({
-        token: function(stream, state) {
-            if (stream.match(/^[a-zA-Z_$][a-zA-Z0-9_$]*/)) {
-                return "variable";
-            }
-            stream.next();
-            return null;
-        }
-    });
-
-    editor.addOverlay({
-        token: function(stream, state) {
-            if (stream.match(/^(if|else|while|for|function|return|var|let|const|class|new|this|super|extends|import|export|default|from|as|await|async|try|catch|finally|throw|debugger|yield|enum|implements|interface|package|private|protected|public|static|null|true|false|undefined|NaN|Infinity)$/)) {
-                return "keyword";
-            }
-            stream.next();
-            return null;
-        }
-    });
-
-    editor.addOverlay({
-        token: function(stream, state) {
-            if (stream.match(/^"([^"\\]|\\.)*"/) || stream.match(/^'([^'\\]|\\.)*'/)) {
-                return "string";
-            }
-            stream.next();
-            return null;
-        }
-    });
-
-    editor.addOverlay({
-        token: function(stream, state) {
-            if (stream.match(/^\d+(\.\d+)?([eE][+-]?\d+)?/)) {
-                return "number";
-            }
-            stream.next();
-            return null;
-        }
-    });
-
-    editor.refresh();
+    return "custom";
 }
 
 saveColorsButton.addEventListener('click', () => {
@@ -700,7 +668,8 @@ saveColorsButton.addEventListener('click', () => {
         numberColor: numberColorPicker.value
     };
     saveColors(colors).then(() => {
-        applyColors(colors);
+        createCustomTheme();
+        editor.setOption("theme", "custom");
     });
 });
 
@@ -713,7 +682,8 @@ function loadColors() {
             keywordColorPicker.value = colorObj.keywordColor;
             stringColorPicker.value = colorObj.stringColor;
             numberColorPicker.value = colorObj.numberColor;
-            applyColors(colorObj);
+            createCustomTheme();
+            editor.setOption("theme", "custom");
         }
     });
 }
